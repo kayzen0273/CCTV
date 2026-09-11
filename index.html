@@ -136,7 +136,16 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
+  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp'
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  }
 ];
 
 function randomCode(len=6){
@@ -225,24 +234,38 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     viewerCountEl.textContent = Object.keys(peers).length;
   }
 
-  async function createPeerForViewer(viewerId){
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  async function createPeerForViewer(viewerId, isRestart){
+    if(peers[viewerId] && !isRestart){
+      try{ peers[viewerId].close(); }catch(e){}
+    }
+    const pc = peers[viewerId] && isRestart ? peers[viewerId] : new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peers[viewerId] = pc;
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    pc.onicecandidate = (e) => {
-      if(e.candidate){
-        channel.send({ type:'broadcast', event:'ice-broadcaster', payload:{ viewerId, candidate: e.candidate } });
-      }
-    };
-    pc.onconnectionstatechange = () => {
-      if(['failed','closed','disconnected'].includes(pc.connectionState)){
-        delete peers[viewerId];
-        updateViewerCount();
-      }
-    };
+    if(!isRestart){
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    const offer = await pc.createOffer();
+      pc.onicecandidate = (e) => {
+        if(e.candidate){
+          channel.send({ type:'broadcast', event:'ice-broadcaster', payload:{ viewerId, candidate: e.candidate } });
+        }
+      };
+
+      let restarted = false;
+      pc.onconnectionstatechange = () => {
+        if(pc.connectionState === 'failed' && !restarted){
+          restarted = true;
+          statusText.textContent = 'Menyambung ulang...';
+          createPeerForViewer(viewerId, true).catch(console.error);
+        } else if(['closed','disconnected'].includes(pc.connectionState)){
+          if(peers[viewerId] === pc){
+            delete peers[viewerId];
+            updateViewerCount();
+          }
+        }
+      };
+    }
+
+    const offer = await pc.createOffer(isRestart ? { iceRestart: true } : undefined);
     await pc.setLocalDescription(offer);
     channel.send({ type:'broadcast', event:'offer', payload:{ viewerId, offer } });
     updateViewerCount();
@@ -327,6 +350,24 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   const viewerId = 'v-' + Math.random().toString(36).slice(2,10);
   let pc = null;
   let channel = null;
+  let gotTrack = false;
+  let helloTries = 0;
+  let helloTimer = null;
+
+  function sendHelloWithRetry(){
+    if(gotTrack || helloTries >= 8){
+      clearInterval(helloTimer);
+      if(!gotTrack && helloTries >= 8){
+        overlayText.textContent = 'Kamera belum merespons. Pastikan kamera masih menyala dan kode ruangan benar, lalu coba lagi.';
+      }
+      return;
+    }
+    helloTries++;
+    channel.send({ type:'broadcast', event:'hello', payload:{ viewerId } });
+    if(!helloTimer){
+      helloTimer = setInterval(sendHelloWithRetry, 3000);
+    }
+  }
 
   window.connectToRoom = function connectToRoom(roomCode){
     roomLabel.textContent = 'Ruangan: ' + roomCode;
@@ -337,6 +378,8 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
     pc.ontrack = (e) => {
+      gotTrack = true;
+      clearInterval(helloTimer);
       remoteVideo.srcObject = e.streams[0];
       overlayText.textContent = '';
       overlay.style.display = 'none';
@@ -350,14 +393,22 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
       }
     };
 
+    let reconnecting = false;
     pc.onconnectionstatechange = () => {
       if(pc.connectionState === 'connected'){
         statusText.textContent = 'Tersambung';
-      } else if(['failed','disconnected','closed'].includes(pc.connectionState)){
+        reconnecting = false;
+      } else if(pc.connectionState === 'failed' && !reconnecting){
+        reconnecting = true;
+        statusText.textContent = 'Menyambung ulang...';
+        overlay.style.display = 'flex';
+        overlayText.textContent = 'Koneksi sempat gagal, mencoba menyambung ulang...';
+        gotTrack = false;
+        helloTries = 0;
+        sendHelloWithRetry();
+      } else if(['disconnected','closed'].includes(pc.connectionState)){
         statusText.textContent = 'Terputus';
         liveDot.classList.remove('live');
-        overlay.style.display = 'flex';
-        overlayText.textContent = 'Koneksi terputus. Muat ulang halaman untuk mencoba lagi.';
       }
     };
 
@@ -381,7 +432,8 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     channel.subscribe((status) => {
       if(status === 'SUBSCRIBED'){
         overlayText.textContent = 'Menunggu kamera merespons...';
-        channel.send({ type:'broadcast', event:'hello', payload:{ viewerId } });
+        helloTries = 0;
+        sendHelloWithRetry();
       }
     });
   };
