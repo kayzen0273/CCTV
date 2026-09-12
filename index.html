@@ -192,7 +192,9 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   const liveDot = document.getElementById('bLiveDot');
   const statusText = document.getElementById('bStatusText');
 
-  roomInput.value = randomCode();
+  const SAVED_ROOM_KEY = 'cctv_room_code';
+  const savedRoom = localStorage.getItem(SAVED_ROOM_KEY);
+  roomInput.value = savedRoom || randomCode();
   randomBtn.onclick = () => { roomInput.value = randomCode(); };
 
   async function startCamera(){
@@ -307,6 +309,7 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   startBtn.onclick = async () => {
     if(startBtn.textContent.includes('Mulai')){
       roomCode = (roomInput.value || randomCode()).trim().toUpperCase();
+      localStorage.setItem(SAVED_ROOM_KEY, roomCode);
       roomInput.disabled = true;
       randomBtn.disabled = true;
       startBtn.textContent = 'Hentikan Streaming';
