@@ -1,473 +1,254 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HP Jadi CCTV</title>
-<style>
-  :root{
-    --bg:#0b0f14; --panel:#121821; --accent:#3ddc84;
-    --text:#e8edf2; --muted:#8a9aab; --danger:#ff5c5c; --border:#1f2b38;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-  .wrap{max-width:480px;margin:0 auto;padding:20px 16px 40px;}
-  h1{font-size:20px;font-weight:700;margin:8px 0 4px;display:flex;align-items:center;gap:8px;}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
-  .video-box{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:9/16;max-height:60vh;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
-  #viewerScreen .video-box{aspect-ratio:16/9;}
-  video{width:100%;height:100%;object-fit:cover;display:block;}
-  #viewerScreen video{object-fit:contain;}
-  .badge{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);padding:6px 10px;border-radius:20px;font-size:12px;display:flex;align-items:center;gap:6px;}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
-  .dot.live{background:var(--danger);animation:pulse 1.4s infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .overlay-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:14px;text-align:center;padding:20px;}
-  .controls{display:flex;gap:10px;margin-top:14px;}
-  button{padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
-  .btn-primary{flex:1;background:var(--accent);color:#00220f;}
-  .btn-secondary{background:var(--panel);color:var(--text);border:1px solid var(--border);}
-  .btn-danger{flex:1;background:var(--danger);color:#2a0000;}
-  .icon-btn{background:var(--panel);border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:12px;font-size:18px;flex:none;display:flex;align-items:center;justify-content:center;}
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:16px;}
-  .panel label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
-  .room-row{display:flex;gap:8px;}
-  input[type=text]{flex:1;background:#0b0f14;border:1px solid var(--border);color:var(--text);padding:11px;border-radius:10px;font-size:14px;width:100%;}
-  .link-box{display:flex;gap:8px;margin-top:10px;}
-  .link-box input{font-size:13px;}
-  .copy-btn{background:var(--accent);color:#00220f;border:none;border-radius:10px;padding:0 14px;font-weight:600;font-size:13px;}
-  .status-line{font-size:13px;color:var(--muted);margin-top:10px;}
-  .viewers{color:var(--accent);font-weight:600;}
-  .hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px;}
-  .row{display:flex;gap:10px;margin-top:16px;}
-  a.btn{display:block;padding:15px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;margin-bottom:12px;text-align:center;}
-  .home-card{text-align:center;padding-top:20px;}
-  .home-card h1{justify-content:center;font-size:24px;}
-  .home-card p{color:var(--muted);font-size:14px;line-height:1.6;margin:10px 0 26px;}
-  .screen{display:none;}
-  .screen.active{display:block;}
-  .back-link{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-bottom:14px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabel Input & Edit Data</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+
+        .paste-area {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover { background-color: #0056b3; }
+        button.btn-success { background-color: #28a745; }
+        button.btn-success:hover { background-color: #218838; }
+        button.btn-danger { background-color: #dc3545; }
+        button.btn-danger:hover { background-color: #c82333; }
+        button.btn-secondary { background-color: #6c757d; }
+        button.btn-secondary:hover { background-color: #5a6268; }
+
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            color: #333;
+            z-index: 1;
+        }
+
+        /* Input di dalam tabel agar bisa di-edit langsung */
+        td input {
+            width: 90%;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        td input:focus {
+            border-color: #007bff;
+            outline: none;
+            background-color: #eef6ff;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
 
-  <!-- HOME -->
-  <div class="screen" id="homeScreen">
-    <div class="home-card">
-      <h1>📹 HP Jadi CCTV</h1>
-      <p>Ubah kamera HP kamu jadi CCTV dan tonton dari perangkat lain lewat link, tanpa aplikasi tambahan.</p>
-      <a class="btn btn-primary" href="javascript:void(0)" id="goCameraBtn" style="display:block;">Jadi Kamera CCTV</a>
-      <a class="btn btn-secondary" href="javascript:void(0)" id="goViewerBtn" style="display:block;">Tonton Stream</a>
-    </div>
-  </div>
+<div class="container">
+    <h2>Input & Edit Data Tabel</h2>
 
-  <!-- BROADCASTER -->
-  <div class="screen" id="cameraScreen">
-    <a href="javascript:void(0)" class="back-link" id="backFromCamera">← Kembali</a>
-    <h1>📹 Kamera CCTV</h1>
-    <div class="sub">Ubah HP ini jadi kamera CCTV. Bagikan link untuk dilihat dari HP/laptop lain.</div>
-
-    <div class="video-box">
-      <video id="localVideo" autoplay playsinline muted></video>
-      <div class="badge"><span class="dot" id="bLiveDot"></span><span id="bStatusText">Belum aktif</span></div>
-    </div>
-
-    <div class="controls">
-      <button class="btn-primary" id="startBtn">Mulai Streaming</button>
-      <button class="icon-btn" id="switchCamBtn" title="Ganti kamera">🔄</button>
-    </div>
-
-    <div class="panel">
-      <label>Kode Ruangan (bisa diubah sebelum mulai)</label>
-      <div class="room-row">
-        <input type="text" id="roomCode" maxlength="12">
-        <button class="btn-secondary" id="randomBtn" style="flex:none;padding:0 14px;">Acak</button>
-      </div>
-
-      <div id="linkSection" style="display:none;">
-        <label style="margin-top:14px;">Link untuk Menonton</label>
-        <div class="link-box">
-          <input type="text" id="viewLink" readonly>
-          <button class="copy-btn" id="copyBtn">Salin</button>
+    <!-- Area Paste -->
+    <div class="paste-area">
+        <label for="pasteInput"><strong>Tempel (Paste) Data Mentah di Sini:</strong></label>
+        <textarea id="pasteInput" placeholder="Contoh format:&#10;00.00 S&#10;00.05 B&#10;00.10 S"></textarea>
+        <div style="margin-top: 5px;">
+            <button class="btn-success" onclick="prosesPasteData()">📥 Masukkan Data ke Tabel</button>
         </div>
-        <div class="status-line">Penonton tersambung: <span class="viewers" id="viewerCount">0</span></div>
-      </div>
     </div>
 
-    <div class="hint">
-      Koneksi berjalan langsung antar perangkat (peer-to-peer). Paling stabil jika kamera dan penonton berada di WiFi yang sama. Halaman ini butuh HTTPS (atau localhost) agar browser mengizinkan akses kamera.
-    </div>
-  </div>
-
-  <!-- VIEWER -->
-  <div class="screen" id="viewerScreen">
-    <a href="javascript:void(0)" class="back-link" id="backFromViewer">← Kembali</a>
-    <h1>👀 Tonton CCTV</h1>
-    <div class="sub" id="roomLabel">Masukkan kode ruangan untuk mulai menonton.</div>
-
-    <div class="video-box">
-      <video id="remoteVideo" playsinline autoplay></video>
-      <div class="overlay-msg" id="overlay">
-        <div id="overlayText">Menunggu kode ruangan...</div>
-        <button id="playBtn" style="display:none;">▶️ Tonton</button>
-      </div>
-      <div class="badge"><span class="dot" id="vLiveDot"></span><span id="vStatusText">Menunggu</span></div>
+    <!-- Tombol Aksi Tabel -->
+    <div class="action-buttons">
+        <button onclick="tambahBaris()">➕ Tambah Baris Kosong</button>
+        <button class="btn-secondary" onclick="salinSemuaData()">📋 Salin Data Tabel</button>
+        <button class="btn-danger" onclick="kosongkanTabel()">🗑️ Hapus Semua</button>
     </div>
 
-    <div class="row">
-      <button class="btn-secondary" id="fullscreenBtn" style="flex:1;">⛶ Layar Penuh</button>
+    <!-- Container Tabel -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 10%;">No</th>
+                    <th style="width: 40%;">Jam / Waktu</th>
+                    <th style="width: 35%;">Status</th>
+                    <th style="width: 15%;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Tabel Kosong Secara Default -->
+            </tbody>
+        </table>
     </div>
-
-    <div class="panel" id="noRoomPanel">
-      <label style="font-size:12px;color:var(--muted);">Masukkan kode ruangan</label>
-      <input type="text" id="roomInput" placeholder="Contoh: AB12CD">
-      <div class="row"><button class="btn-primary" id="joinBtn" style="width:100%;">Sambungkan</button></div>
-    </div>
-  </div>
-
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const SUPABASE_URL = 'https://dzcroqkrlkudgcwjbfsa.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Y3JvcWtybGt1ZGdjd2piZnNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxMDQ2NDYsImV4cCI6MjEwNDY4MDY0Nn0.9-YI3zLzJSU7G8V5rdUXqsfZ5aZFIMBLjTWQplFjowQ';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Fungsi Menambah Baris Baru
+    function tambahBaris(jam = '', status = '') {
+        const tbody = document.getElementById('tableBody');
+        const rowCount = tbody.rows.length + 1;
 
-const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  {
-    urls: [
-      'turn:openrelay.metered.ca:80',
-      'turn:openrelay.metered.ca:443',
-      'turn:openrelay.metered.ca:443?transport=tcp'
-    ],
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  }
-];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="row-number">${rowCount}</td>
+            <td><input type="text" value="${jam}" placeholder="00.00"></td>
+            <td><input type="text" value="${status}" placeholder="S / B"></td>
+            <td><button class="btn-delete" onclick="hapusBaris(this)">X</button></td>
+        `;
 
-function randomCode(len=6){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s='';
-  for(let i=0;i<len;i++) s+=chars[Math.floor(Math.random()*chars.length)];
-  return s;
-}
-
-/* ---------- Navigasi antar layar ---------- */
-const screens = {
-  home: document.getElementById('homeScreen'),
-  camera: document.getElementById('cameraScreen'),
-  viewer: document.getElementById('viewerScreen'),
-};
-function showScreen(name){
-  Object.values(screens).forEach(s=>s.classList.remove('active'));
-  screens[name].classList.add('active');
-}
-
-document.getElementById('goCameraBtn').onclick = () => showScreen('camera');
-document.getElementById('goViewerBtn').onclick = () => showScreen('viewer');
-document.getElementById('backFromCamera').onclick = () => { location.href = location.pathname; };
-document.getElementById('backFromViewer').onclick = () => { location.href = location.pathname; };
-
-/* ================= BROADCASTER (Kamera) ================= */
-(function(){
-  let localStream = null;
-  let channel = null;
-  let peers = {};
-  let currentFacing = 'environment';
-  let roomCode = '';
-  let wakeLock = null;
-
-  const localVideo = document.getElementById('localVideo');
-  const startBtn = document.getElementById('startBtn');
-  const switchCamBtn = document.getElementById('switchCamBtn');
-  const roomInput = document.getElementById('roomCode');
-  const randomBtn = document.getElementById('randomBtn');
-  const linkSection = document.getElementById('linkSection');
-  const viewLinkInput = document.getElementById('viewLink');
-  const copyBtn = document.getElementById('copyBtn');
-  const viewerCountEl = document.getElementById('viewerCount');
-  const liveDot = document.getElementById('bLiveDot');
-  const statusText = document.getElementById('bStatusText');
-
-  const SAVED_ROOM_KEY = 'cctv_room_code';
-  const savedRoom = localStorage.getItem(SAVED_ROOM_KEY);
-  roomInput.value = savedRoom || randomCode();
-  randomBtn.onclick = () => { roomInput.value = randomCode(); };
-
-  async function startCamera(){
-    try{
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode: currentFacing, width:{ideal:1280}, height:{ideal:720} },
-        audio: true
-      });
-    }catch(err){
-      alert('Tidak bisa mengakses kamera: ' + err.message);
-      throw err;
+        tbody.appendChild(tr);
+        perbaruiNomor();
     }
-    localVideo.srcObject = localStream;
-  }
 
-  async function switchCamera(){
-    currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
-    const oldStream = localStream;
-    try{
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode: currentFacing, width:{ideal:1280}, height:{ideal:720} },
-        audio: true
-      });
-      localStream = newStream;
-      localVideo.srcObject = newStream;
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      Object.values(peers).forEach(pc=>{
-        const sender = pc.getSenders().find(s=>s.track && s.track.kind==='video');
-        if(sender) sender.replaceTrack(newVideoTrack);
-      });
-      if(oldStream) oldStream.getTracks().forEach(t=>t.stop());
-    }catch(err){
-      alert('Gagal ganti kamera: '+err.message);
-    }
-  }
-  switchCamBtn.onclick = switchCamera;
-
-  function updateViewerCount(){
-    viewerCountEl.textContent = Object.keys(peers).length;
-  }
-
-  async function createPeerForViewer(viewerId, isRestart){
-    if(peers[viewerId] && !isRestart){
-      try{ peers[viewerId].close(); }catch(e){}
-    }
-    const pc = peers[viewerId] && isRestart ? peers[viewerId] : new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    peers[viewerId] = pc;
-
-    if(!isRestart){
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-      pc.onicecandidate = (e) => {
-        if(e.candidate){
-          channel.send({ type:'broadcast', event:'ice-broadcaster', payload:{ viewerId, candidate: e.candidate } });
+    // Fungsi Mengisi Tabel dari Data Tempelan (Paste)
+    function prosesPasteData() {
+        const rawText = document.getElementById('pasteInput').value.trim();
+        if (!rawText) {
+            alert('Area teks paste masih kosong!');
+            return;
         }
-      };
 
-      let restarted = false;
-      pc.onconnectionstatechange = () => {
-        if(pc.connectionState === 'failed' && !restarted){
-          restarted = true;
-          statusText.textContent = 'Menyambung ulang...';
-          createPeerForViewer(viewerId, true).catch(console.error);
-        } else if(['closed','disconnected'].includes(pc.connectionState)){
-          if(peers[viewerId] === pc){
-            delete peers[viewerId];
-            updateViewerCount();
-          }
+        const lines = rawText.split('\n');
+        lines.forEach(line => {
+            const cleanLine = line.trim();
+            if (cleanLine) {
+                const parts = cleanLine.split(/\s+/); // Memisah berdasarkan spasi/tab
+                const jam = parts[0] || '';
+                const status = parts[1] || '';
+                tambahBaris(jam, status);
+            }
+        });
+
+        // Kosongkan kotak teks setelah dimasukkan ke tabel
+        document.getElementById('pasteInput').value = '';
+    }
+
+    // Fungsi Hapus Baris Tertentu
+    function hapusBaris(button) {
+        const row = button.closest('tr');
+        row.remove();
+        perbaruiNomor();
+    }
+
+    // Fungsi Reset / Kosongkan Seluruh Tabel
+    function kosongkanTabel() {
+        if (confirm('Yakin ingin menghapus seluruh isi tabel?')) {
+            document.getElementById('tableBody').innerHTML = '';
         }
-      };
     }
 
-    const offer = await pc.createOffer(isRestart ? { iceRestart: true } : undefined);
-    await pc.setLocalDescription(offer);
-    channel.send({ type:'broadcast', event:'offer', payload:{ viewerId, offer } });
-    updateViewerCount();
-  }
-
-  function setupChannel(){
-    channel = sb.channel('room-'+roomCode, { config:{ broadcast:{ self:false } } });
-
-    channel.on('broadcast', { event:'hello' }, ({ payload }) => {
-      createPeerForViewer(payload.viewerId).catch(console.error);
-    });
-
-    channel.on('broadcast', { event:'answer' }, async ({ payload }) => {
-      const pc = peers[payload.viewerId];
-      if(pc) await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
-    });
-
-    channel.on('broadcast', { event:'ice-viewer' }, async ({ payload }) => {
-      const pc = peers[payload.viewerId];
-      if(pc && payload.candidate){
-        try{ await pc.addIceCandidate(payload.candidate); }catch(e){}
-      }
-    });
-
-    channel.subscribe((status) => {
-      if(status === 'SUBSCRIBED'){
-        statusText.textContent = 'Menunggu penonton...';
-        liveDot.classList.add('live');
-      }
-    });
-  }
-
-  async function requestWakeLock(){
-    try{
-      if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-    }catch(e){}
-  }
-
-  startBtn.onclick = async () => {
-    if(startBtn.textContent.includes('Mulai')){
-      roomCode = (roomInput.value || randomCode()).trim().toUpperCase();
-      localStorage.setItem(SAVED_ROOM_KEY, roomCode);
-      roomInput.disabled = true;
-      randomBtn.disabled = true;
-      startBtn.textContent = 'Hentikan Streaming';
-      startBtn.classList.remove('btn-primary');
-      startBtn.classList.add('btn-danger');
-
-      await startCamera();
-      setupChannel();
-      requestWakeLock();
-
-      const link = `${location.origin}${location.pathname}?room=${roomCode}&mode=view`;
-      viewLinkInput.value = link;
-      linkSection.style.display = 'block';
-    } else {
-      location.reload();
+    // Fungsi Memperbarui Urutan Nomor Tabel
+    function perbaruiNomor() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach((row, index) => {
+            row.querySelector('.row-number').textContent = index + 1;
+        });
     }
-  };
 
-  copyBtn.onclick = () => {
-    viewLinkInput.select();
-    document.execCommand('copy');
-    copyBtn.textContent = 'Tersalin!';
-    setTimeout(()=>copyBtn.textContent='Salin', 1500);
-  };
-})();
+    // Fungsi Menyalin Semua Data di Tabel saat Ini
+    function salinSemuaData() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        if (rows.length === 0) {
+            alert('Tabel masih kosong!');
+            return;
+        }
 
-/* ================= VIEWER (Tonton) ================= */
-(function(){
-  const remoteVideo = document.getElementById('remoteVideo');
-  const overlay = document.getElementById('overlay');
-  const overlayText = document.getElementById('overlayText');
-  const playBtn = document.getElementById('playBtn');
-  const statusText = document.getElementById('vStatusText');
-  const liveDot = document.getElementById('vLiveDot');
-  const roomLabel = document.getElementById('roomLabel');
-  const noRoomPanel = document.getElementById('noRoomPanel');
-  const roomInput = document.getElementById('roomInput');
-  const joinBtn = document.getElementById('joinBtn');
-  const fullscreenBtn = document.getElementById('fullscreenBtn');
+        let resultText = '';
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const jam = inputs[0].value.trim();
+            const status = inputs[1].value.trim();
+            if (jam || status) {
+                resultText += `${jam} ${status}\n`;
+            }
+        });
 
-  const viewerId = 'v-' + Math.random().toString(36).slice(2,10);
-  let pc = null;
-  let channel = null;
-  let gotTrack = false;
-  let helloTries = 0;
-  let helloTimer = null;
-
-  function sendHelloWithRetry(){
-    if(gotTrack || helloTries >= 8){
-      clearInterval(helloTimer);
-      if(!gotTrack && helloTries >= 8){
-        overlayText.textContent = 'Kamera belum merespons. Pastikan kamera masih menyala dan kode ruangan benar, lalu coba lagi.';
-      }
-      return;
+        navigator.clipboard.writeText(resultText.trim()).then(() => {
+            alert('Data tabel berhasil disalin ke clipboard!');
+        }).catch(err => {
+            alert('Gagal menyalin data: ' + err);
+        });
     }
-    helloTries++;
-    channel.send({ type:'broadcast', event:'hello', payload:{ viewerId } });
-    if(!helloTimer){
-      helloTimer = setInterval(sendHelloWithRetry, 3000);
-    }
-  }
-
-  window.connectToRoom = function connectToRoom(roomCode){
-    roomLabel.textContent = 'Ruangan: ' + roomCode;
-    noRoomPanel.style.display = 'none';
-    overlay.style.display = 'flex';
-    overlayText.textContent = 'Menghubungkan ke kamera...';
-
-    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-
-    pc.ontrack = (e) => {
-      gotTrack = true;
-      clearInterval(helloTimer);
-      remoteVideo.srcObject = e.streams[0];
-      overlayText.textContent = '';
-      overlay.style.display = 'none';
-      statusText.textContent = 'Tersambung';
-      liveDot.classList.add('live');
-    };
-
-    pc.onicecandidate = (e) => {
-      if(e.candidate){
-        channel.send({ type:'broadcast', event:'ice-viewer', payload:{ viewerId, candidate: e.candidate } });
-      }
-    };
-
-    let reconnecting = false;
-    pc.onconnectionstatechange = () => {
-      if(pc.connectionState === 'connected'){
-        statusText.textContent = 'Tersambung';
-        reconnecting = false;
-      } else if(pc.connectionState === 'failed' && !reconnecting){
-        reconnecting = true;
-        statusText.textContent = 'Menyambung ulang...';
-        overlay.style.display = 'flex';
-        overlayText.textContent = 'Koneksi sempat gagal, mencoba menyambung ulang...';
-        gotTrack = false;
-        helloTries = 0;
-        sendHelloWithRetry();
-      } else if(['disconnected','closed'].includes(pc.connectionState)){
-        statusText.textContent = 'Terputus';
-        liveDot.classList.remove('live');
-      }
-    };
-
-    channel = sb.channel('room-'+roomCode, { config:{ broadcast:{ self:false } } });
-
-    channel.on('broadcast', { event:'offer' }, async ({ payload }) => {
-      if(payload.viewerId !== viewerId) return;
-      await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      channel.send({ type:'broadcast', event:'answer', payload:{ viewerId, answer } });
-    });
-
-    channel.on('broadcast', { event:'ice-broadcaster' }, async ({ payload }) => {
-      if(payload.viewerId !== viewerId) return;
-      if(payload.candidate){
-        try{ await pc.addIceCandidate(payload.candidate); }catch(e){}
-      }
-    });
-
-    channel.subscribe((status) => {
-      if(status === 'SUBSCRIBED'){
-        overlayText.textContent = 'Menunggu kamera merespons...';
-        helloTries = 0;
-        sendHelloWithRetry();
-      }
-    });
-  };
-
-  playBtn.onclick = () => { remoteVideo.play().catch(()=>{}); playBtn.style.display='none'; };
-  remoteVideo.onclick = () => { if(remoteVideo.paused) remoteVideo.play().catch(()=>{}); };
-
-  fullscreenBtn.onclick = () => {
-    if(remoteVideo.requestFullscreen) remoteVideo.requestFullscreen();
-    else if(remoteVideo.webkitEnterFullscreen) remoteVideo.webkitEnterFullscreen();
-  };
-
-  joinBtn.onclick = () => {
-    const code = roomInput.value.trim().toUpperCase();
-    if(code) window.connectToRoom(code);
-  };
-})();
-
-/* ================= ROUTING AWAL ================= */
-(function(){
-  const params = new URLSearchParams(location.search);
-  const room = (params.get('room')||'').trim().toUpperCase();
-  const mode = params.get('mode');
-
-  if(room && mode === 'view'){
-    showScreen('viewer');
-    window.connectToRoom(room);
-  } else {
-    showScreen('home');
-  }
-})();
 </script>
+
 </body>
 </html>
