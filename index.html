@@ -134,53 +134,10 @@ const SUPABASE_URL = 'https://dzcroqkrlkudgcwjbfsa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Y3JvcWtybGt1ZGdjd2piZnNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxMDQ2NDYsImV4cCI6MjEwNDY4MDY0Nn0.9-YI3zLzJSU7G8V5rdUXqsfZ5aZFIMBLjTWQplFjowQ';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ---------- ICE / TURN server ----------
-   PENTING soal "gak bisa nyambung":
-   TURN server gratis lama (openrelay.metered.ca dengan username/password statis
-   "openrelayproject") SUDAH TIDAK BISA DIPAKAI LAGI — provider itu sekarang
-   mewajibkan API key. Tanpa TURN yang valid, koneksi HANYA akan berhasil kalau
-   dua HP kebetulan bisa saling connect langsung (biasanya di WiFi yang sama).
-   Begitu kamera & penonton beda jaringan (mis. salah satu pakai data seluler),
-   koneksi akan macet di status "Menghubungkan..." / "Menyambung ulang...".
-
-   Solusi: daftar GRATIS di https://www.metered.ca (tanpa kartu kredit, dapat
-   jatah 20GB/bulan TURN — lebih dari cukup untuk CCTV pribadi), lalu isi
-   METERED_APP_NAME dan METERED_API_KEY di bawah ini. Kalau dikosongkan,
-   aplikasi tetap jalan pakai STUN saja (cukup untuk WiFi yang sama, tapi
-   tidak akan tembus jaringan berbeda / NAT ketat operator seluler). */
-const METERED_APP_NAME = ''; // contoh: 'namaappkamu' (subdomain akun metered.ca kamu)
-const METERED_API_KEY = '';  // API key dari dashboard metered.ca
-
-const FALLBACK_STUN_SERVERS = [
+const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:global.stun.twilio.com:3478' }
+  { urls: 'stun:stun1.l.google.com:19302' }
 ];
-
-let _cachedIceServers = null;
-async function getIceServers(){
-  if(_cachedIceServers) return _cachedIceServers;
-
-  if(METERED_APP_NAME && METERED_API_KEY){
-    try{
-      const res = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
-      if(res.ok){
-        const turnServers = await res.json();
-        if(Array.isArray(turnServers) && turnServers.length){
-          _cachedIceServers = [...FALLBACK_STUN_SERVERS, ...turnServers];
-          return _cachedIceServers;
-        }
-      }
-      console.warn('Gagal ambil kredensial TURN dari metered.ca, pakai STUN saja.');
-    }catch(e){
-      console.warn('Gagal ambil kredensial TURN, pakai STUN saja:', e);
-    }
-  }
-
-  _cachedIceServers = FALLBACK_STUN_SERVERS;
-  return _cachedIceServers;
-}
 
 function randomCode(len=6){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -226,9 +183,7 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   const liveDot = document.getElementById('bLiveDot');
   const statusText = document.getElementById('bStatusText');
 
-  const SAVED_ROOM_KEY = 'cctv_room_code';
-  const savedRoom = localStorage.getItem(SAVED_ROOM_KEY);
-  roomInput.value = savedRoom || randomCode();
+  roomInput.value = randomCode();
   randomBtn.onclick = () => { roomInput.value = randomCode(); };
 
   async function startCamera(){
@@ -270,38 +225,24 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     viewerCountEl.textContent = Object.keys(peers).length;
   }
 
-  async function createPeerForViewer(viewerId, isRestart){
-    if(peers[viewerId] && !isRestart){
-      try{ peers[viewerId].close(); }catch(e){}
-    }
-    const pc = peers[viewerId] && isRestart ? peers[viewerId] : new RTCPeerConnection({ iceServers: await getIceServers() });
+  async function createPeerForViewer(viewerId){
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peers[viewerId] = pc;
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    if(!isRestart){
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.onicecandidate = (e) => {
+      if(e.candidate){
+        channel.send({ type:'broadcast', event:'ice-broadcaster', payload:{ viewerId, candidate: e.candidate } });
+      }
+    };
+    pc.onconnectionstatechange = () => {
+      if(['failed','closed','disconnected'].includes(pc.connectionState)){
+        delete peers[viewerId];
+        updateViewerCount();
+      }
+    };
 
-      pc.onicecandidate = (e) => {
-        if(e.candidate){
-          channel.send({ type:'broadcast', event:'ice-broadcaster', payload:{ viewerId, candidate: e.candidate } });
-        }
-      };
-
-      let restarted = false;
-      pc.onconnectionstatechange = () => {
-        if(pc.connectionState === 'failed' && !restarted){
-          restarted = true;
-          statusText.textContent = 'Menyambung ulang...';
-          createPeerForViewer(viewerId, true).catch(console.error);
-        } else if(['closed','disconnected'].includes(pc.connectionState)){
-          if(peers[viewerId] === pc){
-            delete peers[viewerId];
-            updateViewerCount();
-          }
-        }
-      };
-    }
-
-    const offer = await pc.createOffer(isRestart ? { iceRestart: true } : undefined);
+    const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     channel.send({ type:'broadcast', event:'offer', payload:{ viewerId, offer } });
     updateViewerCount();
@@ -343,7 +284,6 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   startBtn.onclick = async () => {
     if(startBtn.textContent.includes('Mulai')){
       roomCode = (roomInput.value || randomCode()).trim().toUpperCase();
-      localStorage.setItem(SAVED_ROOM_KEY, roomCode);
       roomInput.disabled = true;
       randomBtn.disabled = true;
       startBtn.textContent = 'Hentikan Streaming';
@@ -387,38 +327,16 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
   const viewerId = 'v-' + Math.random().toString(36).slice(2,10);
   let pc = null;
   let channel = null;
-  let gotTrack = false;
-  let helloTries = 0;
-  let helloTimer = null;
 
-  function sendHelloWithRetry(){
-    if(gotTrack || helloTries >= 8){
-      clearInterval(helloTimer);
-      if(!gotTrack && helloTries >= 8){
-        overlayText.textContent = 'Tidak bisa tersambung. Pastikan kamera masih menyala & kode ruangan benar. Jika kamera dan HP ini beda jaringan (WiFi/data seluler berbeda), koneksi butuh server TURN — lihat komentar METERED_APP_NAME di kode untuk mengaktifkannya.';
-      }
-      return;
-    }
-    helloTries++;
-    channel.send({ type:'broadcast', event:'hello', payload:{ viewerId } });
-    if(!helloTimer){
-      helloTimer = setInterval(sendHelloWithRetry, 3000);
-    }
-  }
+  window.connectToRoom = function connectToRoom(roomCode){
+    roomLabel.textContent = 'Ruangan: ' + roomCode;
+    noRoomPanel.style.display = 'none';
+    overlay.style.display = 'flex';
+    overlayText.textContent = 'Menghubungkan ke kamera...';
 
-  let reconnecting = false;
-
-  async function setupPeerConnection(){
-    // Selalu buat RTCPeerConnection BARU (bukan pakai yang lama), supaya kalau
-    // koneksi sebelumnya 'failed', percobaan sambung ulang benar-benar bersih.
-    if(pc){
-      try{ pc.close(); }catch(e){}
-    }
-    pc = new RTCPeerConnection({ iceServers: await getIceServers() });
+    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
     pc.ontrack = (e) => {
-      gotTrack = true;
-      clearInterval(helloTimer);
       remoteVideo.srcObject = e.streams[0];
       overlayText.textContent = '';
       overlay.style.display = 'none';
@@ -433,32 +351,15 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('[viewer] connectionState:', pc.connectionState);
       if(pc.connectionState === 'connected'){
         statusText.textContent = 'Tersambung';
-        reconnecting = false;
-      } else if(pc.connectionState === 'failed' && !reconnecting){
-        reconnecting = true;
-        statusText.textContent = 'Menyambung ulang...';
-        overlay.style.display = 'flex';
-        overlayText.textContent = 'Koneksi sempat gagal, mencoba menyambung ulang...';
-        gotTrack = false;
-        helloTries = 0;
-        setupPeerConnection().then(() => sendHelloWithRetry());
-      } else if(['disconnected','closed'].includes(pc.connectionState)){
+      } else if(['failed','disconnected','closed'].includes(pc.connectionState)){
         statusText.textContent = 'Terputus';
         liveDot.classList.remove('live');
+        overlay.style.display = 'flex';
+        overlayText.textContent = 'Koneksi terputus. Muat ulang halaman untuk mencoba lagi.';
       }
     };
-  }
-
-  window.connectToRoom = async function connectToRoom(roomCode){
-    roomLabel.textContent = 'Ruangan: ' + roomCode;
-    noRoomPanel.style.display = 'none';
-    overlay.style.display = 'flex';
-    overlayText.textContent = 'Menghubungkan ke kamera...';
-
-    await setupPeerConnection();
 
     channel = sb.channel('room-'+roomCode, { config:{ broadcast:{ self:false } } });
 
@@ -480,8 +381,7 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     channel.subscribe((status) => {
       if(status === 'SUBSCRIBED'){
         overlayText.textContent = 'Menunggu kamera merespons...';
-        helloTries = 0;
-        sendHelloWithRetry();
+        channel.send({ type:'broadcast', event:'hello', payload:{ viewerId } });
       }
     });
   };
