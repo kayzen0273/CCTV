@@ -134,19 +134,53 @@ const SUPABASE_URL = 'https://dzcroqkrlkudgcwjbfsa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Y3JvcWtybGt1ZGdjd2piZnNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxMDQ2NDYsImV4cCI6MjEwNDY4MDY0Nn0.9-YI3zLzJSU7G8V5rdUXqsfZ5aZFIMBLjTWQplFjowQ';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const ICE_SERVERS = [
+/* ---------- ICE / TURN server ----------
+   PENTING soal "gak bisa nyambung":
+   TURN server gratis lama (openrelay.metered.ca dengan username/password statis
+   "openrelayproject") SUDAH TIDAK BISA DIPAKAI LAGI — provider itu sekarang
+   mewajibkan API key. Tanpa TURN yang valid, koneksi HANYA akan berhasil kalau
+   dua HP kebetulan bisa saling connect langsung (biasanya di WiFi yang sama).
+   Begitu kamera & penonton beda jaringan (mis. salah satu pakai data seluler),
+   koneksi akan macet di status "Menghubungkan..." / "Menyambung ulang...".
+
+   Solusi: daftar GRATIS di https://www.metered.ca (tanpa kartu kredit, dapat
+   jatah 20GB/bulan TURN — lebih dari cukup untuk CCTV pribadi), lalu isi
+   METERED_APP_NAME dan METERED_API_KEY di bawah ini. Kalau dikosongkan,
+   aplikasi tetap jalan pakai STUN saja (cukup untuk WiFi yang sama, tapi
+   tidak akan tembus jaringan berbeda / NAT ketat operator seluler). */
+const METERED_APP_NAME = ''; // contoh: 'namaappkamu' (subdomain akun metered.ca kamu)
+const METERED_API_KEY = '';  // API key dari dashboard metered.ca
+
+const FALLBACK_STUN_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  {
-    urls: [
-      'turn:openrelay.metered.ca:80',
-      'turn:openrelay.metered.ca:443',
-      'turn:openrelay.metered.ca:443?transport=tcp'
-    ],
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  }
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:global.stun.twilio.com:3478' }
 ];
+
+let _cachedIceServers = null;
+async function getIceServers(){
+  if(_cachedIceServers) return _cachedIceServers;
+
+  if(METERED_APP_NAME && METERED_API_KEY){
+    try{
+      const res = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+      if(res.ok){
+        const turnServers = await res.json();
+        if(Array.isArray(turnServers) && turnServers.length){
+          _cachedIceServers = [...FALLBACK_STUN_SERVERS, ...turnServers];
+          return _cachedIceServers;
+        }
+      }
+      console.warn('Gagal ambil kredensial TURN dari metered.ca, pakai STUN saja.');
+    }catch(e){
+      console.warn('Gagal ambil kredensial TURN, pakai STUN saja:', e);
+    }
+  }
+
+  _cachedIceServers = FALLBACK_STUN_SERVERS;
+  return _cachedIceServers;
+}
 
 function randomCode(len=6){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -240,7 +274,7 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     if(peers[viewerId] && !isRestart){
       try{ peers[viewerId].close(); }catch(e){}
     }
-    const pc = peers[viewerId] && isRestart ? peers[viewerId] : new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = peers[viewerId] && isRestart ? peers[viewerId] : new RTCPeerConnection({ iceServers: await getIceServers() });
     peers[viewerId] = pc;
 
     if(!isRestart){
@@ -361,7 +395,7 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     if(gotTrack || helloTries >= 8){
       clearInterval(helloTimer);
       if(!gotTrack && helloTries >= 8){
-        overlayText.textContent = 'Kamera belum merespons. Pastikan kamera masih menyala dan kode ruangan benar, lalu coba lagi.';
+        overlayText.textContent = 'Tidak bisa tersambung. Pastikan kamera masih menyala & kode ruangan benar. Jika kamera dan HP ini beda jaringan (WiFi/data seluler berbeda), koneksi butuh server TURN — lihat komentar METERED_APP_NAME di kode untuk mengaktifkannya.';
       }
       return;
     }
@@ -372,13 +406,15 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
     }
   }
 
-  window.connectToRoom = function connectToRoom(roomCode){
-    roomLabel.textContent = 'Ruangan: ' + roomCode;
-    noRoomPanel.style.display = 'none';
-    overlay.style.display = 'flex';
-    overlayText.textContent = 'Menghubungkan ke kamera...';
+  let reconnecting = false;
 
-    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  async function setupPeerConnection(){
+    // Selalu buat RTCPeerConnection BARU (bukan pakai yang lama), supaya kalau
+    // koneksi sebelumnya 'failed', percobaan sambung ulang benar-benar bersih.
+    if(pc){
+      try{ pc.close(); }catch(e){}
+    }
+    pc = new RTCPeerConnection({ iceServers: await getIceServers() });
 
     pc.ontrack = (e) => {
       gotTrack = true;
@@ -396,8 +432,8 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
       }
     };
 
-    let reconnecting = false;
     pc.onconnectionstatechange = () => {
+      console.log('[viewer] connectionState:', pc.connectionState);
       if(pc.connectionState === 'connected'){
         statusText.textContent = 'Tersambung';
         reconnecting = false;
@@ -408,12 +444,21 @@ document.getElementById('backFromViewer').onclick = () => { location.href = loca
         overlayText.textContent = 'Koneksi sempat gagal, mencoba menyambung ulang...';
         gotTrack = false;
         helloTries = 0;
-        sendHelloWithRetry();
+        setupPeerConnection().then(() => sendHelloWithRetry());
       } else if(['disconnected','closed'].includes(pc.connectionState)){
         statusText.textContent = 'Terputus';
         liveDot.classList.remove('live');
       }
     };
+  }
+
+  window.connectToRoom = async function connectToRoom(roomCode){
+    roomLabel.textContent = 'Ruangan: ' + roomCode;
+    noRoomPanel.style.display = 'none';
+    overlay.style.display = 'flex';
+    overlayText.textContent = 'Menghubungkan ke kamera...';
+
+    await setupPeerConnection();
 
     channel = sb.channel('room-'+roomCode, { config:{ broadcast:{ self:false } } });
 
