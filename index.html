@@ -874,7 +874,7 @@ function drawPray(a,R,pose){
 const PP=pts=>{const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return {pts,cum,T:cum[cum.length-1]/SPEED};};
 const atP=(p,e)=>{const d=Math.max(0,Math.min(p.cum[p.cum.length-1],e*SPEED));let i=1;while(i<p.cum.length-1&&p.cum[i]<d)i++;const L=(p.cum[i]-p.cum[i-1])||1,f=(d-p.cum[i-1])/L;return [p.pts[i-1][0]+(p.pts[i][0]-p.pts[i-1][0])*f,p.pts[i-1][1]+(p.pts[i][1]-p.pts[i-1][1])*f];};
 const rkPose=(e,last)=>e<2.5?'qiyam':e<3.7?'ruku':e<4.7?'qiyam':e<6?'sujud':e<7?'duduk':e<8.3?'sujud':last?'duduk':'qiyam';
-function planP(rk){
+function planP(rk,dur){
   const ag={},ord=[];
   AG.forEach(a=>{
     const s=SEATS[a.desk],h=a.id==='boss'?[s,[15.4,4.5],[15.6,2.8]]:[s].concat(route('s'+a.desk,'cg').map(n=>NODES[n]),[[11.6,5],[11.6,1.9],[15.6,2.8]]);
@@ -893,7 +893,7 @@ function planP(rk){
     g.segs.push({t0:tw0,t1:tw1,pos:TP[tap],act:'Berwudhu',wud:tap},{t0:tw1,t1:tw1+sp.T,p:sp,act:'Memakai '+(g.a.g==='f'?'mukena':'sarung & peci'),garb:1});
     g.rdy=tw1+sp.T;
   });
-  const IQ=Math.max(...ord.map(g=>g.rdy))+16,F0=IQ+4,FE=F0+rk*RKS+3,DE=FE+9;let total=0;
+  const IQ=Math.max(Math.max(...ord.map(g=>g.rdy))+16,dur+8),F0=IQ+4,FE=F0+rk*RKS+3,DE=FE+9;let total=0;
   ord.forEach(g=>{
     const id=g.a.id,P0={pos:SP[id],back:1,garb:1},S=g.segs;
     if(SUN.includes(id))S.push({t0:g.rdy,t1:g.rdy+12,...P0,act:'Sholat sunnah',sun:1},{t0:g.rdy+12,t1:IQ,...P0,pose:'duduk',act:'Berzikir, menunggu iqamah'});
@@ -904,14 +904,26 @@ function planP(rk){
       {t0:DE,t1:DE+o.T,p:o,act:'Selesai sholat',garb:1},{t0:DE+o.T,t1:DE+o.T+g.back.T,p:g.back,act:'Kembali ke meja'});
     total=Math.max(total,DE+o.T+g.back.T);
   });
-  return {ag,total};
+  return {ag,total,IQ};
 }
-const PLC={};let demo=null;
-const planFor=rk=>PLC[rk]||(PLC[rk]=planP(rk));
+const PLC={},DLOCK={};let demo=null;
+const planFor=(rk,dur)=>{const k=rk+':'+Math.round(dur);return PLC[k]||(PLC[k]=planP(rk,dur));};
+/* lama adzan (detik): panjang file mp3 yang dipilih, atau panjang adzan sintetis. Dikunci per waktu sholat agar iqamah tidak bergeser. */
+function adhanDur(name){
+  if(ADHAN_URL){const d=adAudio.duration;return isFinite(d)&&d>0?d:null;}
+  return synthDur(name==='Subuh');
+}
+function lockDur(t0,name,active){
+  if(DLOCK[t0]!==undefined)return DLOCK[t0];
+  const d=adhanDur(name);
+  if(d===null)return 150;
+  if(active)DLOCK[t0]=d;
+  return d;
+}
 function prayerAt(ms){
-  if(demo){const p=planFor(demo.rk);if(ms>=demo.t0&&ms<demo.t0+p.total*1000)return {t0:demo.t0,name:demo.name,rk:demo.rk,plan:p};}
+  if(demo){const p=planFor(demo.rk,lockDur(demo.t0,demo.name,ms>=demo.t0));if(ms>=demo.t0&&ms<demo.t0+p.total*1000)return {t0:demo.t0,name:demo.name,rk:demo.rk,plan:p};}
   const d=new Date(ms);
-  for(const [name,h,m,rk] of PT){const t0=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m).getTime(),p=planFor(rk);if(ms>=t0&&ms<t0+p.total*1000)return {t0,name,rk,plan:p};}
+  for(const [name,h,m,rk] of PT){const t0=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m).getTime(),p=planFor(rk,lockDur(t0,name,ms>=t0));if(ms>=t0&&ms<t0+p.total*1000)return {t0,name,rk,plan:p};}
   return null;
 }
 function applyPray(a,ps,el){
@@ -1129,6 +1141,7 @@ function adhanScore(subuh){
   s.push(AK,AK,LA2);
   return s;
 }
+function synthDur(subuh){let t=.3;adhanScore(subuh).forEach(ph=>{ph.forEach(n=>{t+=n[1]*.52;});t+=.6*.52;});return t;}
 function stopAdhanAudio(){
   if(!adhan)return;
   try{
@@ -1140,7 +1153,7 @@ function stopAdhanAudio(){
 function stopAdhan(){stopAdhanAudio();adhanOn=false;clearTimeout(adhanTimer);}
 function startAdhan(subuh){
   stopAdhan();adhanOn=true;
-  let secs=100;
+  let secs=(ADHAN_URL&&isFinite(adAudio.duration)&&adAudio.duration>0)?adAudio.duration:synthDur(subuh);
   if(muted||vol<=0||!touched){adhanTimer=setTimeout(()=>{adhanOn=false;},secs*1000);return;}
   try{
     if(ADHAN_URL){
@@ -1306,7 +1319,7 @@ function eventsBetween(t0,t1){
   return ev.filter(e=>e.t>t0&&e.t<=t1).sort((p,q)=>p.t-q.t);
 }
 function clockInTime(a){const d=new Date();d.setHours(0,0,0,0);const ds=d.getTime();return ds+(6.5*3600+hs(a.id+ds)%5400)*1000;}
-let lastT=Date.now();
+let lastT=Date.now(),iqSent=0;
 setInterval(()=>{
   const now=Date.now();
   refreshTasks(now);
@@ -1317,6 +1330,7 @@ setInterval(()=>{
     evs.forEach(e=>e.sys?addMsg(e.who,e.text,'sys',e.t):speak(e.who,e.text,e.t,false));
   }
   {const ps=prayerAt(now),pp=prayerAt(lastT);
+   if(ps&&(now-ps.t0)/1000>=ps.plan.IQ&&iqSent!==ps.t0){iqSent=ps.t0;addMsg(boss,'Adzan selesai. Iqamah dikumandangkan, merapikan shaf.','sys',now);}
    if(ps&&(!pp||pp.t0!==ps.t0)){addMsg(boss,'Adzan '+ps.name+' berkumandang. Waktunya sholat berjamaah di masjid.','sys',now);startAdhan(ps.name==='Subuh');if(!touched&&!muted){adhanPend=ps.t0;addMsg(boss,'Klik atau ketuk layar sekali agar suara adzan bisa diputar.','hint',now);}}
    if(pp&&(!ps||ps.t0!==pp.t0)){addMsg(boss,'Sholat '+pp.name+' selesai. Kembali bekerja.','sys',now);stopAdhan();}}
   lastT=now;
