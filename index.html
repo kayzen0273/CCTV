@@ -1,117 +1,416 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kopi Sangrai – Roastery kopi kecil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#eef2f3;--ink:#12303a;--muted:#4d6670;--accent:#f2b705;--card:#fff;--line:#cfdadd;color-scheme:light}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1f25;--ink:#e8f0f2;--muted:#9fb5bc;--card:#16303a;--line:#27434d;color-scheme:dark}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.6}
-header,section,footer{max-width:960px;margin:0 auto;padding:24px}
-header{display:flex;justify-content:space-between;align-items:center}
-header b{font-size:1.2rem}
-nav a{margin-left:20px;color:var(--ink);text-decoration:none}
-nav a:hover{text-decoration:underline}
-.hero{padding-top:64px;padding-bottom:64px}
-.hero h1{font-size:clamp(2.6rem,9vw,5.6rem);line-height:1;letter-spacing:-.03em;font-weight:800;margin:0 0 20px;max-width:12ch}
-.hero p{max-width:52ch;color:var(--muted);font-size:1.15rem}
-.btn{display:inline-block;background:var(--accent);color:#12303a;font-weight:600;padding:12px 22px;border-radius:999px;text-decoration:none;border:0;cursor:pointer;font:inherit}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
-.item h3{margin:0 0 4px}.item p{margin:0;color:var(--muted)}.price{margin-top:12px!important;color:var(--ink)!important;font-weight:600}
-h2{font-size:1.8rem;margin:0 0 16px}
-footer{color:var(--muted);border-top:1px solid var(--line)}
-a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-/* chat */
-#chat-btn{position:fixed;right:20px;bottom:20px;width:60px;height:60px;border-radius:50%;font-size:26px;padding:0;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-#chat{position:fixed;right:20px;bottom:90px;width:min(380px,calc(100vw - 40px));height:min(520px,calc(100vh - 120px));background:var(--card);border:1px solid var(--line);border-radius:16px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-#chat.open{display:flex}
-#chat-head{padding:14px 16px;background:var(--ink);color:var(--bg);font-weight:600}
-#msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.m{max-width:85%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word}
-.m.bot{background:var(--bg);align-self:flex-start}
-.m.me{background:var(--accent);color:#12303a;align-self:flex-end}
-.m.err{background:#fde2e2;color:#7a1212;align-self:flex-start}
-#chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
-#chat-in{flex:1;padding:10px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
-#chat-form .btn{padding:10px 18px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penyimpanan File Pribadi - My Cloud Drive</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
-<body>
-<header><b>Kopi Sangrai</b><nav><a href="#menu">Menu</a><a href="#tentang">Tentang</a></nav></header>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-<section class="hero">
-  <h1>Kopi disangrai kecil-kecilan.</h1>
-  <p>Biji pilihan dari petani lokal, disangrai setiap pekan supaya selalu segar saat sampai di cangkirmu.</p>
-  <p><button class="btn" onclick="toggleChat(true)">Tanya asisten kami</button></p>
-</section>
+    <!-- Navbar Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-indigo-200">
+                    <i class="fa-solid fa-cloud"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-900 leading-tight">My Private Drive</h1>
+                    <p class="text-xs text-slate-500">Penyimpanan File Pribadi Aman & Cepat</p>
+                </div>
+            </div>
 
-<section id="menu">
-  <h2>Menu biji kopi</h2>
-  <div class="grid">
-    <div class="item"><h3>Arabika Single Origin</h3><p>Fruity, asam lembut, 250 g.</p><p class="price">Rp95.000</p></div>
-    <div class="item"><h3>Blend Harian</h3><p>Seimbang, cocok untuk susu, 250 g.</p><p class="price">Rp70.000</p></div>
-    <div class="item"><h3>Paket Coba</h3><p>Tiga varian, masing-masing 100 g.</p><p class="price">Rp110.000</p></div>
-  </div>
-</section>
+            <!-- Header Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="openConfigModal()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-gear"></i> <span class="hidden sm:inline">Pengaturan Supabase</span>
+                </button>
+                <button onclick="openUploadModal()" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span>Upload File</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-<section id="tentang">
-  <h2>Tentang kami</h2>
-  <p style="max-width:60ch;color:var(--muted)">Kami roastery kecil yang percaya kopi enak tidak perlu rumit. Buka setiap hari pukul 08.00–17.00.</p>
-</section>
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
 
-<footer>© Kopi Sangrai</footer>
+        <!-- Stat Widgets -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-semibold">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Total Berkas</p>
+                    <h3 id="statTotalFiles" class="text-2xl font-bold text-slate-900">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-semibold">
+                    <i class="fa-solid fa-hard-drive"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Total Ukuran Storage</p>
+                    <h3 id="statTotalSize" class="text-2xl font-bold text-slate-900">0 MB</h3>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-semibold">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Berkas Favorit</p>
+                    <h3 id="statFavoriteFiles" class="text-2xl font-bold text-slate-900">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-semibold">
+                    <i class="fa-solid fa-image"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Foto & Media</p>
+                    <h3 id="statMediaFiles" class="text-2xl font-bold text-slate-900">0</h3>
+                </div>
+            </div>
+        </div>
 
-<button id="chat-btn" class="btn" aria-label="Buka chat" onclick="toggleChat()">💬</button>
-<div id="chat" role="dialog" aria-label="Chat asisten">
-  <div id="chat-head">Asisten Kopi Sangrai</div>
-  <div id="msgs" aria-live="polite"><div class="m bot">Halo! Ada yang bisa saya bantu soal kopi kami?</div></div>
-  <form id="chat-form">
-    <input id="chat-in" placeholder="Tulis pesan…" autocomplete="off" required>
-    <button class="btn" type="submit">Kirim</button>
-  </form>
-</div>
+        <!-- Filter & Search Bar -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <!-- Search Input -->
+            <div class="relative w-full md:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" oninput="renderFiles()" placeholder="Cari nama berkas atau deskripsi..." class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+            </div>
 
-<script>
-// ===== ISI BAGIAN INI =====
-const BASE_URL = "http://localhost:20128/v1";
-const API_KEY  = "sk-5f6757e5f4c6bc78-qookie-bf761657";
-const MODEL    = "zenbot";
-const SYSTEM_PROMPT = `Kamu adalah asisten ramah untuk Kopi Sangrai, roastery kopi kecil.
-Jawab dalam bahasa Indonesia, singkat dan jelas. Bantu soal produk, harga, cara seduh, dan pemesanan.
-Menu: Arabika Single Origin 250g Rp95.000, Blend Harian 250g Rp70.000, Paket Coba 3x100g Rp110.000.
-Jam buka 08.00-17.00 setiap hari. Jika tidak tahu, katakan terus terang.`;
-// ==========================
+            <!-- Filters -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button onclick="setCategoryFilter('ALL')" id="filterCatALL" class="cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">
+                    Semua
+                </button>
+                <button onclick="setCategoryFilter('Dokumen')" id="filterCatDokumen" class="cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                    Dokumen
+                </button>
+                <button onclick="setCategoryFilter('Gambar')" id="filterCatGambar" class="cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                    Gambar
+                </button>
+                <button onclick="setCategoryFilter('Video/Audio')" id="filterCatMedia" class="cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                    Media
+                </button>
+                <button onclick="setCategoryFilter('Lainnya')" id="filterCatLainnya" class="cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                    Lainnya
+                </button>
+            </div>
+        </div>
 
-const chat=document.getElementById("chat"),msgs=document.getElementById("msgs"),input=document.getElementById("chat-in");
-const history=[];
-function toggleChat(force){chat.classList.toggle("open",force);if(chat.classList.contains("open"))input.focus()}
-function add(text,cls){const d=document.createElement("div");d.className="m "+cls;d.textContent=text;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d}
-document.getElementById("chat-form").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const text=input.value.trim();if(!text)return;
-  input.value="";add(text,"me");history.push({role:"user",content:text});
-  const wait=add("Mengetik…","bot");
-  try{
-    const r=await fetch(BASE_URL+"/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_KEY},
-      body:JSON.stringify({model:MODEL,messages:[{role:"system",content:SYSTEM_PROMPT},...history.slice(-20)]})
-    });
-    const data=await r.json();
-    if(!r.ok)throw new Error(data?.error?.message||"9router menolak permintaan ("+r.status+").");
-    const reply=data.choices?.[0]?.message?.content||"(tidak ada balasan)";
-    wait.textContent=reply;history.push({role:"assistant",content:reply});
-  }catch(err){
-    wait.className="m err";
-    wait.textContent=err instanceof TypeError?"Tidak bisa terhubung ke 9router. Pastikan 9router berjalan dan CORS diizinkan.":err.message;
-  }
-  msgs.scrollTop=msgs.scrollHeight;
-});
-</script>
+        <!-- Files List Grid -->
+        <div id="fileGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-16 bg-white rounded-2xl border border-slate-200/80 shadow-sm mt-4">
+            <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-regular fa-folder-open"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-lg">Belum Ada Berkas</h3>
+            <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Upload berkas pribadi Anda seperti PDF, gambar, atau dokumen penting ke penyimpanan Supabase Anda.</p>
+            <button onclick="openUploadModal()" class="mt-4 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition inline-flex items-center gap-2">
+                <i class="fa-solid fa-upload"></i> Unggah Sekarang
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Unggah Berkas Baru</h3>
+                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="uploadForm" onsubmit="handleUpload(event)" class="p-6 space-y-4">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih File *</label>
+                    <input type="file" id="fileInput" required onchange="handleFileSelect(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-xl p-2 cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Berkas</label>
+                    <input type="text" id="fileNameInput" placeholder="Nama file (otomatis terisi dari file)" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                        <select id="fileCategoryInput" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <option value="Dokumen">Dokumen</option>
+                            <option value="Gambar">Gambar</option>
+                            <option value="Video/Audio">Video / Audio</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <label class="flex items-center gap-2 cursor-pointer pb-2">
+                            <input type="checkbox" id="fileFavInput" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                            <span class="text-xs font-semibold text-slate-700">Tandai Favorit</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan / Deskripsi Tambahan</label>
+                    <textarea id="fileDescInput" rows="2" placeholder="Tuliskan catatan singkat tentang berkas ini..." class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"></textarea>
+                </div>
+
+                <div class="pt-3 flex justify-end gap-2">
+                    <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                    <button type="submit" id="btnSubmitUpload" class="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Unggah File
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Supabase & Interaktivitas -->
+    <script>
+        // Supabase Credentials
+        const SUPABASE_URL = "https://phtszjjxifhkjxhgdakd.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBodHN6amp4aWZoa2p4aGdkYWtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0OTQyMjAsImV4cCI6MjEwODA3MDIyMH0.dQqDx6S5jVG7IsMdNVkXjP69VuZZ03hARmeRuQ_z8xE";
+        
+        let TABLE_NAME = "file_pribadi";
+        let BUCKET_NAME = "pribadi";
+
+        let supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let filesData = [];
+        let currentFilter = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchFiles();
+        });
+
+        async function fetchFiles() {
+            try {
+                let { data, error } = await supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                filesData = data || [];
+                renderFiles();
+                updateStats();
+            } catch (err) {
+                console.error("Gagal mengambil data:", err.message);
+            }
+        }
+
+        function renderFiles() {
+            const grid = document.getElementById('fileGrid');
+            const empty = document.getElementById('emptyState');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+            grid.innerHTML = '';
+
+            let filtered = filesData.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(searchVal) || 
+                                    (item.description && item.description.toLowerCase().includes(searchVal));
+                const matchCategory = currentFilter === 'ALL' || item.category === currentFilter;
+                return matchSearch && matchCategory;
+            });
+
+            if (filtered.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            } else {
+                empty.classList.add('hidden');
+            }
+
+            filtered.forEach(file => {
+                const isImg = file.file_type && file.file_type.startsWith('image/');
+                const card = document.createElement('div');
+                card.className = "bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group";
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Thumbnail / Icon -->
+                        <div class="h-32 bg-slate-50 rounded-xl mb-3 flex items-center justify-center overflow-hidden border border-slate-100 relative">
+                            ${isImg 
+                                ? `<img src="${file.file_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`
+                                : `<i class="${getFileIcon(file.file_type)} text-4xl text-indigo-500"></i>`
+                            }
+                            <button onclick="toggleFavorite(${file.id}, ${!file.is_favorite})" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm text-slate-400 hover:text-amber-500 transition">
+                                <i class="fa-${file.is_favorite ? 'solid text-amber-500' : 'regular'} fa-star text-sm"></i>
+                            </button>
+                        </div>
+
+                        <!-- Info -->
+                        <h4 class="font-bold text-slate-800 text-sm truncate" title="${file.name}">${file.name}</h4>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                            <span class="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">${file.category || 'Dokumen'}</span>
+                            <span>•</span>
+                            <span>${formatBytes(file.file_size)}</span>
+                        </div>
+                        ${file.description ? `<p class="text-xs text-slate-500 mt-2 line-clamp-2">${file.description}</p>` : ''}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
+                        <a href="${file.file_url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-down-to-line"></i> Download
+                        </a>
+                        <button onclick="deleteFile(${file.id}, '${file.file_path}')" class="text-red-500 hover:text-red-700 p-1">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileNameInput').value = file.name;
+                // Auto categorization
+                if (file.type.startsWith('image/')) {
+                    document.getElementById('fileCategoryInput').value = 'Gambar';
+                } else if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+                    document.getElementById('fileCategoryInput').value = 'Video/Audio';
+                } else {
+                    document.getElementById('fileCategoryInput').value = 'Dokumen';
+                }
+            }
+        }
+
+        async function handleUpload(e) {
+            e.preventDefault();
+            const fileObj = document.getElementById('fileInput').files[0];
+            if (!fileObj) return alert('Silakan pilih berkas terlebih dahulu!');
+
+            const btn = document.getElementById('btnSubmitUpload');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Mengunggah...`;
+
+            try {
+                // 1. Upload to Supabase Storage
+                const fileExt = fileObj.name.split('.').pop();
+                const filePath = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+                let { data: storageData, error: storageError } = await supabase.storage
+                    .from(BUCKET_NAME)
+                    .upload(filePath, fileObj);
+
+                if (storageError) throw storageError;
+
+                // Get Public URL
+                const { data: urlData } = supabase.storage
+                    .from(BUCKET_NAME)
+                    .getPublicUrl(filePath);
+
+                // 2. Save metadata to Postgres Database
+                const customName = document.getElementById('fileNameInput').value || fileObj.name;
+                const category = document.getElementById('fileCategoryInput').value;
+                const isFav = document.getElementById('fileFavInput').checked;
+                const desc = document.getElementById('fileDescInput').value;
+
+                let { error: dbError } = await supabase.from(TABLE_NAME).insert([{
+                    name: customName,
+                    category: category,
+                    file_path: filePath,
+                    file_url: urlData.publicUrl,
+                    file_size: fileObj.size,
+                    file_type: fileObj.type,
+                    description: desc,
+                    is_favorite: isFav
+                }]);
+
+                if (dbError) throw dbError;
+
+                closeUploadModal();
+                fetchFiles();
+            } catch (err) {
+                alert('Gagal mengunggah berkas: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Unggah File`;
+            }
+        }
+
+        async function toggleFavorite(id, status) {
+            await supabase.from(TABLE_NAME).update({ is_favorite: status }).eq('id', id);
+            fetchFiles();
+        }
+
+        async function deleteFile(id, path) {
+            if (!confirm('Apakah Anda yakin ingin menghapus berkas ini?')) return;
+
+            try {
+                // Delete from storage
+                await supabase.storage.from(BUCKET_NAME).remove([path]);
+                // Delete row from DB
+                await supabase.from(TABLE_NAME).delete().eq('id', id);
+                fetchFiles();
+            } catch (err) {
+                alert('Gagal menghapus berkas: ' + err.message);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statTotalFiles').innerText = filesData.length;
+            const totalBytes = filesData.reduce((acc, curr) => acc + (curr.file_size || 0), 0);
+            document.getElementById('statTotalSize').innerText = (totalBytes / (1024 * 1024)).toFixed(1) + ' MB';
+            document.getElementById('statFavoriteFiles').innerText = filesData.filter(x => x.is_favorite).length;
+            document.getElementById('statMediaFiles').innerText = filesData.filter(x => x.category === 'Gambar' || x.category === 'Video/Audio').length;
+        }
+
+        function setCategoryFilter(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.className = "cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+            });
+            event.target.className = "cat-filter-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition";
+            renderFiles();
+        }
+
+        function getFileIcon(type) {
+            if (!type) return 'fa-regular fa-file';
+            if (type.includes('pdf')) return 'fa-regular fa-file-pdf text-rose-500';
+            if (type.includes('word') || type.includes('document')) return 'fa-regular fa-file-word text-blue-500';
+            if (type.includes('excel') || type.includes('sheet')) return 'fa-regular fa-file-excel text-emerald-500';
+            if (type.includes('zip') || type.includes('rar') || type.includes('compressed')) return 'fa-regular fa-file-zipper text-amber-500';
+            return 'fa-regular fa-file-lines text-slate-500';
+        }
+
+        function formatBytes(bytes, decimals = 1) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadForm').reset();
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+        }
+    </script>
 </body>
 </html>
